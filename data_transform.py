@@ -2,34 +2,22 @@ import pandas as pd
 import datetime
 import numpy as np
 
-# # only read the columns and rows that we are interested
-# cols = ["SEASON", "NAME", "ISO_TIME", "LAT", "LON", "WMO_WIND", "USA_WIND", "TOKYO_WIND", "CMA_WIND", "NEWDELHI_WIND",
-#         "REUNION_WIND", "BOM_WIND", "WELLINGTON_WIND"]
-# dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S') if (x != " ") else x
-# raw_df_chunk = pd.read_csv("last3years_all.csv", usecols=cols,  parse_dates=['ISO_TIME'], chunksize=1000,
-#                            date_parser=dateparse, dtype='unicode', skiprows=[1])
-# df = pd.concat([chunk[pd.to_datetime(chunk["ISO_TIME"], "%Y-%m-%d") >
-#                       datetime.datetime(2021, 1, 1, 0, 0, 0, 0)] for chunk in raw_df_chunk])
-#
-# # populate the missing values from other xx_wind column to wmo_wind column
-# # df.loc[df["WMO_WIND"] == " ", ["WMO_WIND"]] = df[df["WMO_WIND"] == " "]["USA_WIND"]
-#
-# # We can find out that USA_WIND has the most complete values in the for the wind speed
-# df = df.drop(columns=["WMO_WIND", "TOKYO_WIND", "CMA_WIND", "NEWDELHI_WIND", "REUNION_WIND", "BOM_WIND",
-#                       "WELLINGTON_WIND"])
-#
-# # assign missing values
-# df["USA_WIND"] = df["USA_WIND"].replace(" ", np.nan)
-# df["USA_WIND"] = pd.to_numeric(df["USA_WIND"])
-# df.loc[df["USA_WIND"].isna(), ["USA_WIND"]] = 5 if min(df["USA_WIND"]) - 5 < 0 else min(df["USA_WIND"]) - 5
-# print(min(df["USA_WIND"]))
 
-
-def clean_and_transform_data(fp, start_date, cols, date_col, chunk_size=1000):
+def clean_and_transform_data(fp, start_date, end_date, cols, date_col, chunk_size=1000):
+    """
+    Clean and transform the data to ready status
+    :param fp: path of the CSV file
+    :param start_date: the start date of the period
+    :param end_date: the end date of the period
+    :param cols: the needed columns
+    :param date_col: the timestamps column
+    :param chunk_size: chunk size
+    :return: ready dataframe
+    """
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S') if (x != " ") else x
     raw_df_chunk = pd.read_csv(fp, usecols=cols, parse_dates=[date_col], chunksize=chunk_size,
                                date_parser=dateparse, dtype='unicode', skiprows=[1])
-    df = pd.concat([chunk[pd.to_datetime(chunk[date_col], "%Y-%m-%d") > start_date] for chunk in raw_df_chunk])
+    df = pd.concat([chunk[(pd.to_datetime(chunk[date_col], "%Y-%m-%d") > start_date) & (pd.to_datetime(chunk[date_col], "%Y-%m-%d") < end_date)] for chunk in raw_df_chunk])
     df["USA_WIND"] = df["USA_WIND"].replace(" ", np.nan)
     df["USA_WIND"] = pd.to_numeric(df["USA_WIND"])
     df.loc[df["USA_WIND"].isna(), ["USA_WIND"]] = 5 if min(df["USA_WIND"]) - 5 < 0 else min(df["USA_WIND"]) - 5
@@ -38,6 +26,13 @@ def clean_and_transform_data(fp, start_date, cols, date_col, chunk_size=1000):
 
 
 def add_comment(df, target_name, comments):
+    """
+    A function you use to add additional information to certain cyclones
+    :param df: pandas dataframe
+    :param target_name: list of cyclone names
+    :param comments: lis of comments, order align to the names in the target_name
+    :return: dataframe with extra column COMMENT
+    """
     df["COMMENT"] = np.nan
     for idx, name in enumerate(target_name):
         df.loc[df["NAME"] == name, "COMMENT"] = comments[idx]
@@ -51,6 +46,7 @@ def knots_to_km_h(knots):
 
 if __name__ == '__main__':
     df = clean_and_transform_data("last3years_all.csv", datetime.datetime(2021, 1, 1, 0, 0, 0, 0),
-                                  ["SEASON", "NAME", "ISO_TIME", "LAT", "LON", "USA_WIND"], "ISO_TIME")
+                                  datetime.datetime(2022, 1, 1, 0, 0, 0, 0),
+                                  ["SEASON", "NUMBER", "NAME", "ISO_TIME", "LAT", "LON", "USA_WIND"], "ISO_TIME")
 
     df.to_csv("ready_data.csv", index=False)
