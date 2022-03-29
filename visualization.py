@@ -139,8 +139,3 @@ def tracking_data_timestamp(df):
                         (df["NUMBER"].isin(current_number)) & (df["SEASON"].isin(current_season)), :]
         tracking_data_single(sub_df, min_wind, max_wind, date)
 
-
-if __name__ == '__main__':
-    df = pd.read_csv("ready_data.csv")
-    tracking_data_timestamp(df)
-    #tracking_data_overview(df)

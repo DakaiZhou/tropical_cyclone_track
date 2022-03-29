@@ -43,10 +43,3 @@ def knots_to_km_h(knots):
     km_h = knots * 1.852
     return km_h
 
-
-if __name__ == '__main__':
-    df = clean_and_transform_data("last3years_all.csv", datetime.datetime(2021, 1, 1, 0, 0, 0, 0),
-                                  datetime.datetime(2022, 1, 1, 0, 0, 0, 0),
-                                  ["SEASON", "NUMBER", "NAME", "ISO_TIME", "LAT", "LON", "USA_WIND"], "ISO_TIME")
-
-    df.to_csv("ready_data.csv", index=False)
